@@ -3,7 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import * as z from "zod/v4";
 import { loadConfig } from "./config";
 import { NannyLaneClient } from "./nannylane";
 
@@ -131,7 +131,7 @@ server.registerTool(
     inputSchema: {
       operationName: z.string().min(1),
       sha256Hash: z.string().regex(/^[a-f0-9]{64}$/i),
-      variables: z.record(z.unknown()).default({}),
+      variables: z.record(z.string(), z.unknown()).default({}),
     },
   },
   async ({ operationName, sha256Hash, variables }) =>
@@ -151,7 +151,7 @@ server.registerTool(
     description: "Call api.nannylane.com/graphql with a supplied GraphQL document. Mutations require allowMutation=true.",
     inputSchema: {
       operationName: z.string().optional(),
-      variables: z.record(z.unknown()).default({}),
+      variables: z.record(z.string(), z.unknown()).default({}),
       query: z.string().min(1),
       allowMutation: z.boolean().default(false),
     },
@@ -204,7 +204,7 @@ server.registerTool(
       citySlug: z.string().default("atlanta"),
       stateSlug: z.string().default("ga"),
       first: z.number().int().min(1).max(50).default(9).describe("Accepted for parity with find_nannies; raw data is not sliced."),
-      query: z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
+      query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
     },
   },
   async ({ citySlug, stateSlug, first: _first, query }) => jsonResult(await getClient().directoryPageData({ citySlug, stateSlug, query })),
@@ -219,7 +219,7 @@ server.registerTool(
       citySlug: z.string().default("atlanta"),
       stateSlug: z.string().default("ga"),
       first: z.number().int().min(1).max(50).default(9),
-      query: z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
+      query: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
     },
   },
   async ({ citySlug, stateSlug, first, query }) => jsonResult(await getClient().findNannies({ citySlug, stateSlug, first, query })),
