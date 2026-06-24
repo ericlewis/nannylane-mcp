@@ -1,13 +1,13 @@
 # Nanny Lane MCP
 
-Unofficial Bun-based MCP server for authenticated Nanny Lane dashboard data.
+Unofficial Bun-based MCP server and TypeScript SDK for authenticated Nanny Lane dashboard data.
 
 This project lets an MCP client read Nanny Lane dashboard data, search public nanny directory listings, inspect message threads, fetch plan information, and prepare messages through a local server. Authentication is local-only: the server reads a browser `Cookie` header from environment variables or a private cookie file and never stores credentials in source.
 
 ## What This Is
 
 - A local MCP stdio server written in TypeScript and run with Bun.
-- A small Nanny Lane API/client wrapper for dashboard, GraphQL, Next.js data, listing, plan, and message endpoints.
+- An importable TypeScript SDK for observed Nanny Lane dashboard, GraphQL, Next.js data, listing, plan, and message endpoints.
 - A login helper that can either accept a pasted cookie header or import Nanny Lane cookies from local macOS browsers.
 - A safety-first message tool that defaults to dry-run behavior.
 
@@ -23,6 +23,7 @@ This project lets an MCP client read Nanny Lane dashboard data, search public na
 
 - [Authentication](docs/authentication.md): login helper, browser-cookie import, manual cookie setup, and environment variables.
 - [Browser Cookie Import](docs/browser-cookie-import.md): how Safari and Chrome-family cookie import work.
+- [SDK](docs/sdk.md): importable TypeScript SDK entrypoint, client methods, and guardrails.
 - [MCP Setup](docs/mcp-setup.md): how to run the server from MCP clients.
 - [Tools](docs/tools.md): complete tool reference with inputs, side effects, and examples.
 - [Examples](docs/examples.md): common MCP tool-call workflows.
@@ -77,6 +78,34 @@ Run full release checks:
 bun run check:release
 ```
 
+## SDK Usage
+
+```ts
+import { createNannyLaneClient } from "nannylane-mcp";
+
+const client = createNannyLaneClient();
+const nannies = await client.findNannies({
+  citySlug: "atlanta",
+  stateSlug: "ga",
+  first: 10,
+});
+```
+
+Useful SDK methods include:
+
+- `findNannies()`
+- `listingProfile()`
+- `conversationSummaries()`
+- `messageThread()`
+- `sendMessage()`
+- `plans()`
+- `upgradeUrl()`
+- `nextData()`
+- `graphqlQuery()`
+- `persistedGraphqlQuery()`
+
+See [SDK](docs/sdk.md) for the complete public entrypoint.
+
 ## MCP Client Config
 
 From a source checkout, use an absolute path to `src/server.ts`:
@@ -112,14 +141,21 @@ If you use the default login helper path, no environment variables are required.
 
 - `nannylane_conversations`
 - `nannylane_next_data`
+- `nannylane_dashboard_page_data`
 - `nannylane_conversations_page_data`
 - `nannylane_family_profile_page_data`
+- `nannylane_inbox_summary`
 - `nannylane_persisted_graphql`
+- `nannylane_graphql`
 - `nannylane_peekaboo_bucketing`
+- `nannylane_directory_page_data`
 - `nannylane_find_nannies`
+- `nannylane_listing_profile`
 - `nannylane_messages`
+- `nannylane_message_thread`
 - `nannylane_send_message`
 - `nannylane_plans`
+- `nannylane_upgrade_url`
 
 See [Tools](docs/tools.md) for exact input schemas and behavior.
 
@@ -162,6 +198,7 @@ See [Examples](docs/examples.md) for complete request/response-style workflows.
 - `nannylane_send_message` defaults to `dryRun: true`.
 - The server starts without credentials so MCP clients can list tools before auth is configured.
 - Credential loading is lazy and happens only when a tool call needs to contact Nanny Lane.
+- The release gate verifies both MCP startup and SDK self-import.
 
 ## Open-Source Hygiene
 

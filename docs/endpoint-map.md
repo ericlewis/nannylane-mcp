@@ -51,6 +51,7 @@ Wrapped routes:
 /dashboard/conversations
 /dashboard/family/profile
 /dashboard/family/plans
+any route passed to dashboardPageData() or nannylane_dashboard_page_data
 ```
 
 Purpose:
@@ -65,6 +66,7 @@ NannyLaneClient.nextData()
 NannyLaneClient.conversationsPageData()
 NannyLaneClient.familyProfilePageData()
 NannyLaneClient.plans()
+NannyLaneClient.dashboardPageData()
 ```
 
 Side effects: none.
@@ -125,6 +127,36 @@ NannyLaneClient.persistedGraphqlQuery()
 
 Side effects: depends on the persisted query. Use only known read-only queries unless you have reviewed the operation.
 
+## Generic GraphQL
+
+Host:
+
+```text
+api.nannylane.com/graphql
+```
+
+Inputs:
+
+```text
+operationName
+variables
+query
+```
+
+Purpose:
+
+- expose an SDK escape hatch for observed GraphQL operations
+- let MCP callers run query documents directly
+
+Implementation:
+
+```text
+NannyLaneClient.graphqlQuery()
+nannylane_graphql
+```
+
+Side effects: query operations are read-only. Mutations can have side effects. The MCP wrapper refuses mutations unless `allowMutation` is explicitly true.
+
 ## Directory Listings
 
 Host:
@@ -150,11 +182,41 @@ Purpose:
 - read public directory page HTML
 - extract `__NEXT_DATA__`
 - normalize listing summaries for MCP output
+- optionally return raw directory page data
 
 Implementation:
 
 ```text
 NannyLaneClient.findNannies()
+NannyLaneClient.directoryPageData()
+```
+
+Side effects: none.
+
+## Listing Profile Pages
+
+Host:
+
+```text
+www.nannylane.com
+```
+
+Route pattern:
+
+```text
+/{locale}/nanny-listing/{slug}
+```
+
+Purpose:
+
+- read a public listing page
+- extract `__NEXT_DATA__`
+- normalize the listing object
+
+Implementation:
+
+```text
+NannyLaneClient.listingProfile()
 ```
 
 Side effects: none.

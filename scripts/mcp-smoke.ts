@@ -3,14 +3,21 @@
 const expectedTools = [
   "nannylane_conversations",
   "nannylane_next_data",
+  "nannylane_dashboard_page_data",
   "nannylane_conversations_page_data",
   "nannylane_family_profile_page_data",
+  "nannylane_inbox_summary",
   "nannylane_persisted_graphql",
+  "nannylane_graphql",
   "nannylane_peekaboo_bucketing",
+  "nannylane_directory_page_data",
   "nannylane_find_nannies",
+  "nannylane_listing_profile",
   "nannylane_messages",
+  "nannylane_message_thread",
   "nannylane_send_message",
   "nannylane_plans",
+  "nannylane_upgrade_url",
 ];
 
 const messages = [

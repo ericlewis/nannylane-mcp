@@ -5,14 +5,21 @@ import { join } from "node:path";
 import { buildCookieHeader, normalizeBrowserName } from "../src/browser-cookies";
 import { defaultCookieFile, loadConfig, type NannyLaneConfig } from "../src/config";
 import { normalizeCookieHeader } from "../src/login";
-import { NannyLaneClient } from "../src/nannylane";
+import { NannyLaneClient, NannyLaneUnexpectedResponseError } from "../src/nannylane";
 import {
+  directoryUrl,
   extractBuildId,
   extractNextData,
+  findListingNode,
+  listingProfilePath,
   nextDataPath,
   normalizeLocalizedRoute,
+  slugFromListingPath,
+  summarizeConversations,
+  summarizeMessageThread,
   userIdToPeekabooKey,
 } from "../src/nannylane";
+import { createNannyLaneClient } from "../src/index";
 
 describe("route helpers", () => {
   test("normalizes dashboard routes with locale", () => {
@@ -26,6 +33,31 @@ describe("route helpers", () => {
       "/_next/data/BUILD123/en-us/dashboard/conversations.json",
     );
   });
+
+  test("builds directory URLs with query passthrough", () => {
+    expect(
+      directoryUrl({
+        locale: "en-us",
+        stateSlug: "ga",
+        citySlug: "atlanta",
+        query: {
+          page: 2,
+          fullTime: true,
+          ignored: null,
+          ageGroups: ["INFANT", "TODDLER"],
+        },
+      }).toString(),
+    ).toBe("https://www.nannylane.com/en-us/find/nanny/ga/atlanta?page=2&fullTime=true&ageGroups=INFANT&ageGroups=TODDLER");
+  });
+
+  test("normalizes listing profile inputs", () => {
+    expect(listingProfilePath({ slug: "sample-slug" }, "en-us")).toBe("/en-us/nanny-listing/sample-slug");
+    expect(listingProfilePath({ path: "/nanny-listing/sample-slug" }, "en-us")).toBe("/en-us/nanny-listing/sample-slug");
+    expect(listingProfilePath({ url: "https://www.nannylane.com/en-us/nanny-listing/sample-slug" }, "en-us")).toBe(
+      "/en-us/nanny-listing/sample-slug",
+    );
+    expect(slugFromListingPath("/en-us/nanny-listing/sample-slug")).toBe("sample-slug");
+  });
 });
 
 describe("capture helpers", () => {
@@ -38,6 +70,29 @@ describe("capture helpers", () => {
   test("extracts Next.js payloads", () => {
     expect(extractNextData('<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"ok":true}}}</script>')).toEqual({
       props: { pageProps: { ok: true } },
+    });
+  });
+
+  test("finds listing nodes inside page payloads", () => {
+    expect(
+      findListingNode(
+        {
+          props: {
+            pageProps: {
+              listing: {
+                id: "listing-1",
+                slug: "sample-slug",
+                displayName: "Sample Nanny",
+              },
+            },
+          },
+        },
+        "sample-slug",
+      ),
+    ).toEqual({
+      id: "listing-1",
+      slug: "sample-slug",
+      displayName: "Sample Nanny",
     });
   });
 
@@ -141,6 +196,214 @@ describe("message sending guardrails", () => {
     await expect(client.sendMessage({ listingId: "listing-1", text: "   ", dryRun: false })).rejects.toThrow(
       "Message text is required.",
     );
+  });
+});
+
+describe("SDK normalizers", () => {
+  test("summarizes conversation edges", () => {
+    expect(
+      summarizeConversations({
+        data: {
+          viewer: {
+            conversations: {
+              edges: [
+                {
+                  node: {
+                    id: "conversation-1",
+                    listing: {
+                      id: "listing-1",
+                      displayName: "Sample Nanny",
+                      userListingInterest: {
+                        hiringStage: "INTERVIEWING",
+                      },
+                    },
+                    lastMessage: {
+                      text: "Hello",
+                      createdAt: "2026-06-23T00:00:00Z",
+                    },
+                    unread: true,
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }),
+    ).toEqual([
+      {
+        rank: 1,
+        id: "conversation-1",
+        listingId: "listing-1",
+        displayName: "Sample Nanny",
+        lastMessageText: "Hello",
+        lastMessageAt: "2026-06-23T00:00:00Z",
+        hiringStage: "INTERVIEWING",
+        unread: true,
+        raw: {
+          id: "conversation-1",
+          listing: {
+            id: "listing-1",
+            displayName: "Sample Nanny",
+            userListingInterest: {
+              hiringStage: "INTERVIEWING",
+            },
+          },
+          lastMessage: {
+            text: "Hello",
+            createdAt: "2026-06-23T00:00:00Z",
+          },
+          unread: true,
+        },
+      },
+    ]);
+  });
+
+  test("summarizes message threads", () => {
+    expect(
+      summarizeMessageThread({
+        data: {
+          listingWithMessages: {
+            id: "listing-1",
+            userListingInterest: {
+              hiringStage: "MESSAGING",
+            },
+            messages: {
+              pageInfo: {
+                hasPreviousPage: false,
+              },
+              edges: [
+                {
+                  node: {
+                    id: "message-1",
+                    text: "Hello",
+                    createdAt: "2026-06-23T00:00:00Z",
+                    contentType: "TEXT",
+                    sender: {
+                      id: "user-1",
+                      profile: {
+                        displayName: "Sample Sender",
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }),
+    ).toMatchObject({
+      listingId: "listing-1",
+      userListingInterest: {
+        hiringStage: "MESSAGING",
+      },
+      pageInfo: {
+        hasPreviousPage: false,
+      },
+      messages: [
+        {
+          id: "message-1",
+          text: "Hello",
+          createdAt: "2026-06-23T00:00:00Z",
+          contentType: "TEXT",
+          senderId: "user-1",
+          senderName: "Sample Sender",
+        },
+      ],
+    });
+  });
+
+  test("creates SDK clients from explicit config", () => {
+    expect(createNannyLaneClient(testConfig())).toBeInstanceOf(NannyLaneClient);
+  });
+});
+
+describe("SDK client methods", () => {
+  test("posts raw GraphQL documents", async () => {
+    let seenInput: string | URL | Request | undefined;
+    let seenInit: RequestInit | undefined;
+    const client = new NannyLaneClient(testConfig(), (async (input: string | URL | Request, init?: RequestInit) => {
+      seenInput = input;
+      seenInit = init;
+      return new Response(JSON.stringify({ data: { ok: true } }), {
+        headers: {
+          "content-type": "application/json",
+        },
+      });
+    }) as unknown as typeof fetch);
+
+    await expect(
+      client.graphqlQuery({
+        operationName: "TestQuery",
+        variables: {
+          id: "1",
+        },
+        query: "query TestQuery($id: ID!) { node(id: $id) { id } }",
+      }),
+    ).resolves.toEqual({ data: { ok: true } });
+
+    expect(String(seenInput)).toBe("https://api.nannylane.com/graphql");
+    expect(JSON.parse(String(seenInit?.body))).toEqual({
+      operationName: "TestQuery",
+      variables: {
+        id: "1",
+      },
+      query: "query TestQuery($id: ID!) { node(id: $id) { id } }",
+    });
+  });
+
+  test("returns listing profile fallback when page payload has no listing", async () => {
+    const client = new NannyLaneClient(testConfig(), (async () =>
+      new Response('<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"viewer":{}}}}</script>', {
+        headers: {
+          "content-type": "text/html",
+        },
+      })) as unknown as typeof fetch);
+
+    await expect(client.listingProfile({ slug: "sample-slug", includeRaw: true })).resolves.toMatchObject({
+      listingPath: "/en-us/nanny-listing/sample-slug",
+      listingUrl: "https://www.nannylane.com/en-us/nanny-listing/sample-slug",
+      redirected: true,
+      accessIssue: {
+        code: "listing_payload_missing",
+        message: "The page loaded, but it did not expose a listing object in the observed Next.js payload.",
+        requestedUrl: "https://www.nannylane.com/en-us/nanny-listing/sample-slug",
+        upgradeUrl: "https://www.nannylane.com/en-us/dashboard/family/plans",
+        suggestedActions: [
+          "Open finalUrl in the browser.",
+          "If finalUrl is an upgrade or dashboard page, inspect nannylane_plans.",
+          "If this is still a listing page, use includeRaw=true and inspect raw page data.",
+        ],
+      },
+      raw: {
+        props: {
+          pageProps: {
+            viewer: {},
+          },
+        },
+      },
+      note: "The page loaded, but it did not expose a listing object in the observed Next.js payload.",
+    });
+  });
+
+  test("throws structured JSON response errors with hints", async () => {
+    const client = new NannyLaneClient(testConfig(), (async () =>
+      new Response("<html>login</html>", {
+        headers: {
+          "content-type": "text/html",
+        },
+      })) as unknown as typeof fetch);
+
+    try {
+      await client.nextData({ route: "/dashboard/family/profile", buildId: "BUILD123" });
+      throw new Error("expected nextData to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(NannyLaneUnexpectedResponseError);
+      expect((error as NannyLaneUnexpectedResponseError).details).toMatchObject({
+        contentType: "text/html",
+        bodySnippet: "<html>login</html>",
+        hint: "Nanny Lane returned HTML instead of JSON. This often means a redirect, Cloudflare challenge, stale build id, or expired auth.",
+      });
+    }
   });
 });
 

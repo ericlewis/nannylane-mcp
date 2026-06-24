@@ -65,6 +65,18 @@ server.registerTool(
 );
 
 server.registerTool(
+  "nannylane_dashboard_page_data",
+  {
+    title: "Nanny Lane Dashboard Page Data",
+    description: "Fetch a Nanny Lane dashboard route's Next.js JSON data. Alias for the SDK dashboardPageData helper.",
+    inputSchema: {
+      route: z.string().min(1).describe("Dashboard route such as /dashboard/family/profile."),
+    },
+  },
+  async ({ route }) => jsonResult(await getClient().dashboardPageData(route)),
+);
+
+server.registerTool(
   "nannylane_conversations_page_data",
   {
     title: "Nanny Lane Conversations Page Data",
@@ -82,6 +94,33 @@ server.registerTool(
     inputSchema: {},
   },
   async () => jsonResult(await getClient().familyProfilePageData()),
+);
+
+server.registerTool(
+  "nannylane_inbox_summary",
+  {
+    title: "Nanny Lane Inbox Summary",
+    description: "Return normalized conversation summaries from the Nanny Lane inbox.",
+    inputSchema: {
+      first: z.number().int().min(1).max(100).default(24),
+      after: z.string().optional(),
+      requestsOnly: z.boolean().default(false),
+      archivedOnly: z.boolean().default(false),
+      hiringStages: z.array(z.string()).default([]),
+    },
+  },
+  async ({ first, after, requestsOnly, archivedOnly, hiringStages }) =>
+    jsonResult(
+      await getClient().conversationSummaries({
+        first,
+        after,
+        filters: {
+          requestsOnly,
+          archivedOnly,
+          hiringStages,
+        },
+      }),
+    ),
 );
 
 server.registerTool(
@@ -103,6 +142,32 @@ server.registerTool(
         variables,
       }),
     ),
+);
+
+server.registerTool(
+  "nannylane_graphql",
+  {
+    title: "Nanny Lane GraphQL",
+    description: "Call api.nannylane.com/graphql with a supplied GraphQL document. Mutations require allowMutation=true.",
+    inputSchema: {
+      operationName: z.string().optional(),
+      variables: z.record(z.unknown()).default({}),
+      query: z.string().min(1),
+      allowMutation: z.boolean().default(false),
+    },
+  },
+  async ({ operationName, variables, query, allowMutation }) => {
+    if (/^\s*mutation\b/i.test(query) && !allowMutation) {
+      return jsonResult({
+        dryRun: true,
+        operationName,
+        variables,
+        note: "No GraphQL mutation was sent. Call with allowMutation=true only after reviewing the exact operation and variables.",
+      });
+    }
+
+    return jsonResult(await getClient().graphqlQuery({ operationName, variables, query }));
+  },
 );
 
 server.registerTool(
@@ -131,6 +196,21 @@ server.registerTool(
 );
 
 server.registerTool(
+  "nannylane_directory_page_data",
+  {
+    title: "Nanny Lane Directory Page Data",
+    description: "Fetch raw Next.js data from a public Nanny Lane nanny directory page.",
+    inputSchema: {
+      citySlug: z.string().default("atlanta"),
+      stateSlug: z.string().default("ga"),
+      first: z.number().int().min(1).max(50).default(9).describe("Accepted for parity with find_nannies; raw data is not sliced."),
+      query: z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
+    },
+  },
+  async ({ citySlug, stateSlug, first: _first, query }) => jsonResult(await getClient().directoryPageData({ citySlug, stateSlug, query })),
+);
+
+server.registerTool(
   "nannylane_find_nannies",
   {
     title: "Nanny Lane Find Nannies",
@@ -139,9 +219,25 @@ server.registerTool(
       citySlug: z.string().default("atlanta"),
       stateSlug: z.string().default("ga"),
       first: z.number().int().min(1).max(50).default(9),
+      query: z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.number(), z.boolean()]))])).default({}),
     },
   },
-  async ({ citySlug, stateSlug, first }) => jsonResult(await getClient().findNannies({ citySlug, stateSlug, first })),
+  async ({ citySlug, stateSlug, first, query }) => jsonResult(await getClient().findNannies({ citySlug, stateSlug, first, query })),
+);
+
+server.registerTool(
+  "nannylane_listing_profile",
+  {
+    title: "Nanny Lane Listing Profile",
+    description: "Fetch and normalize a Nanny Lane nanny listing page by slug, path, or URL.",
+    inputSchema: {
+      slug: z.string().optional(),
+      path: z.string().optional(),
+      url: z.string().url().optional(),
+      includeRaw: z.boolean().default(false),
+    },
+  },
+  async ({ slug, path, url, includeRaw }) => jsonResult(await getClient().listingProfile({ slug, path, url, includeRaw })),
 );
 
 server.registerTool(
@@ -154,6 +250,18 @@ server.registerTool(
     },
   },
   async ({ listingId }) => jsonResult(await getClient().messages(listingId)),
+);
+
+server.registerTool(
+  "nannylane_message_thread",
+  {
+    title: "Nanny Lane Message Thread",
+    description: "Read and normalize the recent message thread for a listing id without sending anything.",
+    inputSchema: {
+      listingId: z.string().min(1),
+    },
+  },
+  async ({ listingId }) => jsonResult(await getClient().messageThread(listingId)),
 );
 
 server.registerTool(
@@ -178,6 +286,16 @@ server.registerTool(
     inputSchema: {},
   },
   async () => jsonResult(await getClient().plans()),
+);
+
+server.registerTool(
+  "nannylane_upgrade_url",
+  {
+    title: "Nanny Lane Upgrade URL",
+    description: "Return the authenticated family plans/upgrade URL for opening in a browser.",
+    inputSchema: {},
+  },
+  async () => jsonResult({ url: getClient().upgradeUrl() }),
 );
 
 const transport = new StdioServerTransport();

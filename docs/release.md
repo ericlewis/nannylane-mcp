@@ -16,6 +16,7 @@ This runs:
 - TypeScript typecheck
 - Markdown link validation
 - MCP stdio smoke test
+- SDK self-import smoke test
 - high-risk secret scan
 - package dry-run
 

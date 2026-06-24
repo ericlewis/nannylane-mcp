@@ -2,8 +2,16 @@
   "name": "nannylane-mcp",
   "version": "0.1.0",
   "type": "module",
-  "description": "Bun-based MCP server for authenticated Nanny Lane dashboard data.",
+  "description": "Unofficial Bun-based MCP server and TypeScript SDK for authenticated Nanny Lane dashboard data.",
   "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/nannylane.ts",
+    "./config": "./src/config.ts",
+    "./browser-cookies": "./src/browser-cookies.ts",
+    "./login": "./src/login.ts",
+    "./server": "./src/server.ts"
+  },
   "bin": {
     "nannylane-mcp": "./src/server.ts",
     "nannylane-mcp-login": "./src/login.ts"
@@ -27,7 +35,9 @@
     "model-context-protocol",
     "nannylane",
     "bun",
-    "stdio"
+    "stdio",
+    "sdk",
+    "graphql"
   ],
   "engines": {
     "bun": ">=1.3.0"
@@ -40,10 +50,11 @@
     "login:safari": "bun run src/login.ts --cookies-from-browser safari",
     "check": "bun test && tsc --noEmit",
     "check:docs": "bun run scripts/check-doc-links.ts",
-    "check:release": "bun run check && bun run check:docs && bun run smoke:mcp && bun run check:secrets && bun run pack:dry-run",
+    "check:release": "bun run check && bun run check:docs && bun run smoke:mcp && bun run smoke:sdk && bun run check:secrets && bun run pack:dry-run",
     "check:secrets": "bun run scripts/check-secrets.ts",
     "pack:dry-run": "bun pm pack --dry-run --quiet",
     "smoke:mcp": "bun run scripts/mcp-smoke.ts",
+    "smoke:sdk": "bun run scripts/sdk-smoke.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

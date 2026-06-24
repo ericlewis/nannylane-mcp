@@ -61,6 +61,42 @@ Input:
 
 Review the returned `listingUrl`, `displayName`, `rate`, `availability`, and `summary` before taking action. The returned `listingId` is used by the message tools.
 
+## Read A Listing Profile
+
+Tool:
+
+```text
+nannylane_listing_profile
+```
+
+Input:
+
+```json
+{
+  "url": "https://www.nannylane.com/en-us/nanny-listing/example-slug"
+}
+```
+
+Use this to refresh a specific profile after selecting it from search results.
+
+## Summarize The Inbox
+
+Tool:
+
+```text
+nannylane_inbox_summary
+```
+
+Input:
+
+```json
+{
+  "first": 24
+}
+```
+
+This returns a smaller conversation shape with ids, names, last-message fields, and hiring stage when those fields exist in the underlying payload.
+
 ## Read A Listing's Messages
 
 Tool:
@@ -78,6 +114,24 @@ Input:
 ```
 
 This is read-only. Use it to check whether a thread already exists and whether the account has a current `userListingInterest` for the listing.
+
+## Read A Normalized Message Thread
+
+Tool:
+
+```text
+nannylane_message_thread
+```
+
+Input:
+
+```json
+{
+  "listingId": "listing-id-from-find-nannies"
+}
+```
+
+Use this when you want normalized message fields instead of the raw GraphQL response.
 
 ## Prepare A Message Without Sending
 
@@ -145,3 +199,19 @@ Input:
 ```
 
 This fetches the authenticated family plans page data. Use the live site for purchases or account changes; this server only reads the plan data route.
+
+## Open Upgrade URL
+
+Tool:
+
+```text
+nannylane_upgrade_url
+```
+
+Input:
+
+```json
+{}
+```
+
+The tool returns the plans URL for opening in a browser.

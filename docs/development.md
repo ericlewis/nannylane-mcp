@@ -47,8 +47,11 @@ bun install
 `bun run smoke:mcp`
 : Start the MCP server over stdio and assert that the expected tool list is returned.
 
+`bun run smoke:sdk`
+: Import the package by name and assert that the public SDK entrypoint works.
+
 `bun run check:release`
-: Run tests, typecheck, docs link validation, MCP smoke, secret scan, and package dry-run.
+: Run tests, typecheck, docs link validation, MCP smoke, SDK smoke, secret scan, and package dry-run.
 
 ## Test Philosophy
 
@@ -81,6 +84,7 @@ When adding a tool:
 4. Add tests for local parsing or transformation logic.
 5. Document the tool in [Tools](tools.md).
 6. Mark side effects clearly.
+7. Export SDK-facing helpers from `src/index.ts` when they are useful outside MCP.
 
 When the tool depends on a newly observed Nanny Lane request, also update [Endpoint Map](endpoint-map.md) with:
 
@@ -119,6 +123,7 @@ Documentation should be safe to publish. Use synthetic ids, placeholder cookie n
 Every user-facing behavior should be documented in one of these places:
 
 - Setup and auth behavior: [Authentication](authentication.md) or [MCP Setup](mcp-setup.md)
+- SDK import surface: [SDK](sdk.md)
 - Tool inputs and side effects: [Tools](tools.md)
 - Common workflows: [Examples](examples.md)
 - Internal request mapping: [Endpoint Map](endpoint-map.md)

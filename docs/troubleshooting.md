@@ -124,6 +124,8 @@ Fix:
 3. Retry the tool call.
 4. If only `/_next/data` calls fail, unset `NANNYLANE_BUILD_ID` so the server can rediscover it.
 
+SDK callers can catch `NannyLaneUnexpectedResponseError` and inspect `error.details.hint`, `error.details.url`, `error.details.contentType`, and `error.details.bodySnippet`.
+
 ## Messaging
 
 ### Dry Run Did Not Send
@@ -152,6 +154,22 @@ nannylane_messages
 ```
 
 Then inspect the mutation result from `nannylane_send_message`.
+
+### Listing Profile Returns An Access Issue
+
+`nannylane_listing_profile` and `client.listingProfile()` intentionally return structured `accessIssue` data when Nanny Lane redirects a profile page or omits listing payload data.
+
+Common codes:
+
+```text
+redirected_to_login
+redirected_to_plans
+redirected_to_dashboard
+listing_payload_missing
+next_data_missing
+```
+
+Use `suggestedActions`, `finalUrl`, and `upgradeUrl` to decide whether to refresh auth, open the page in the browser, or inspect plan data.
 
 ## MCP Startup
 

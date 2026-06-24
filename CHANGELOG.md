@@ -12,6 +12,9 @@ This project follows semantic versioning once published.
 - Local cookie-file authentication with lazy config loading.
 - Login helper for pasted cookies, Safari import, and Chrome-family import.
 - Read-only tools for conversations, Next.js dashboard data, plans, messages, public nanny listings, persisted GraphQL, and Peekaboo bucketing.
+- Importable TypeScript SDK entrypoint with client/config/browser-cookie exports.
+- SDK and MCP helpers for listing profiles, directory raw data, inbox summaries, normalized message threads, generic GraphQL, dashboard page data, and upgrade URLs.
 - Dry-run-first message tool.
 - Unit tests, MCP smoke test, docs link checker, secret scan, package dry-run, and CI workflow.
+- SDK self-import smoke test.
 - Open-source documentation covering setup, authentication, browser cookie import, tools, endpoint mapping, development, troubleshooting, release, and security.
