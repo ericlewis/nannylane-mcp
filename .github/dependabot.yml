@@ -1,10 +1,16 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # The MCP SDK tool schema types used by this server currently require
+      # Zod 3-compatible schemas. Revisit this when the SDK typing surface
+      # accepts Zod 4 schemas directly.
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
