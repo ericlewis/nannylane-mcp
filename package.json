@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.5"
   },
   "overrides": {
     "zod": "^4.4.3"
